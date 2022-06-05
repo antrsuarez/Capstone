@@ -1,0 +1,74 @@
+## Loaded packages ##
+
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(skimr)
+
+
+## Loaded all the CSV files for the most recent 12 months data ##
+
+aug21 <- read_csv("~/Desktop/Capstone/aug21.csv")
+apr22 <- read_csv("~/Desktop/Capstone/apr22.csv")
+dec21 <- read_csv("~/Desktop/Capstone/dec21.csv")
+feb22 <- read_csv("~/Desktop/Capstone/feb22.csv")
+jan22 <- read_csv("~/Desktop/Capstone/jan22.csv")
+jul21 <- read_csv("~/Desktop/Capstone/jul21.csv")
+jun21 <- read_csv("~/Desktop/Capstone/jun21.csv")
+mar22 <- read_csv("~/Desktop/Capstone/mar22.csv")
+may21 <- read_csv("~/Desktop/Capstone/may21.csv")
+nov21 <- read_csv("~/Desktop/Capstone/nov21.csv")
+oct21 <- read_csv("~/Desktop/Capstone/oct21.csv")
+sep21 <- read_csv("~/Desktop/Capstone/sep21.csv")
+
+## Bound all 12 months into a signle dataframe ##
+
+trip_data <- rbind(jan22,feb22,mar22,apr22,may21,jun21,jul21,aug21,sep21,oct21,nov21,dec21)
+
+
+## Removed unnecessary columns ##
+
+trip_data <- trip_data %>% select(-c(start_station_id,end_station_id))
+
+
+## Dropped rows with missing data ##
+
+trip_data <- trip_data %>% remove_empty(c("rows","cols")) %>% drop_na()
+
+## Created new colums for Date, Month, Day, Year, and Weekday ##
+
+trip_data$date <-as.Date(trip_data$started_at)
+trip_data$month <- format(as.Date(trip_data$date), "%m")
+trip_data$day <- format(as.Date(trip_data$date), "%d")
+trip_data$year <- format(as.Date(trip_data$date), "%y")
+trip_data$weekday <- format(as.Date(trip_data$date), "%A")
+
+## Created new columns to isolate start and end times ##
+
+trip_data$start_time <- format(as.POSIXct(trip_data$started_at), format = "%H:%M:%S")
+trip_data$end_time <- format(as.POSIXct(trip_data$ended_at), format = "%H:%M:%S")
+
+## Created column for ride duration and converted it from seconds to minutes ##
+
+trip_data$ride_duration <- difftime(trip_data$ended_at,trip_data$started_at)
+trip_data$ride_duration <- as.numeric(trip_data$ride_duration)/60
+
+## Removed rows with negative values in the ride_duration row ##
+
+trip_data <- trip_data[!(trip_data$ride_duration<0),]
+
+
+## Filter out trips having to do with DIVVY repairs ##
+
+trip_data <- trip_data[!(trip_data$start_station_name=="DIVVY CASSETTE REPAIR MOBILE STATION"),]
+
+## Filter out trips lasting longer than 24 hrs ##
+
+trip_data <- trip_data %>% filter(trip_data$ride_duration < 1440)
+
+## Saved my progress by exporting to a csv file ##
+
+write.csv(trip_data, "trip_data.csv" )
+
+
+
